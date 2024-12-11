@@ -4,8 +4,6 @@ from rdkit import Chem
 from rdkit.Chem import Descriptors
 
 data = pd.read_csv('train.csv')
-print(data.shape)
-
 
 list = np.array(0)
 
