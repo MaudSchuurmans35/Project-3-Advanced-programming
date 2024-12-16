@@ -9,10 +9,15 @@ from rdkit.Chem import rdMolDescriptors
 from rdkit.Chem import Descriptors 
 from rdkit.Chem import MolFromSmiles 
 import os
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_validate
 
 script_dir = os.path.dirname(os.path.abspath(__file__))  # Get the script's directory
 path = os.path.join(script_dir, 'train.csv')  # Construct the full path to train.csv
 data = pd.read_csv(path)
+print(len(data))
+# train_data = 
+# test_data = 
 
 def getting_descriptors(data,maner='short'):
     all_descriptors=[]
@@ -25,7 +30,7 @@ def getting_descriptors(data,maner='short'):
             all_descriptors.append(vals)
     else:
         
-        for i in range(20):  #we us this one because the other one takes to long to run
+        for i in range(10):  #we us this one because the other one takes to long to run
             smile=data.iloc[i,0]
             molecule = MolFromSmiles(smile)
             vals = Descriptors.CalcMolDescriptors(molecule) #vals is a dictionary
@@ -71,7 +76,7 @@ def rem_corr_features(data,threshold):
 
 
 #extracting information
-feature_data=getting_descriptors(data,'short') #extracting all descriptors
+feature_data=getting_descriptors(data,'completely') #extracting all descriptors
 #cleaning data
 clean_data=rem_empty_columns(feature_data) #removing columns where all entries are the same
 scaled_data=min_max_scaling_data(clean_data) #scaling the data using a min-max scaler
@@ -82,8 +87,8 @@ def pca(data, threshold_variance):
     principal_components = pca.fit_transform(data)
     loadings = pca.components_
 
-    print("Explained Variance Ratio:", pca.explained_variance_ratio_)
-    print("Cumulative Explained Variance:", np.cumsum(pca.explained_variance_ratio_))
+    # print("Explained Variance Ratio:", pca.explained_variance_ratio_)
+    # print("Cumulative Explained Variance:", np.cumsum(pca.explained_variance_ratio_))
     # Plot 1: Cumulative Explained Variance Ratio
     plt.figure(1)
     plt.bar(list(range(1, len(np.cumsum(pca.explained_variance_ratio_)) + 1)), np.cumsum(pca.explained_variance_ratio_), color='skyblue', edgecolor='black')
@@ -103,9 +108,25 @@ def pca(data, threshold_variance):
     plt.legend(['Explained Variance Ratio'], loc='best')
 
     # Show both plots
-    plt.show()
-    print(len(principal_components[0]))
+    # plt.show()
+    # print(len(principal_components[0]))
     data=pd.DataFrame(principal_components)
-    print(data.head)
+    # print(data.head)
+    return data
 
-pca(cleaner_data,0.9)
+final_data = pca(cleaner_data,None)
+
+
+
+
+def logisticRegression(descriptors, target_feature):
+    logisticRegr = LogisticRegression(solver = 'lbfgs') # use this solver to make it faster
+    # performing cross validation with different 
+    cv_results = cross_validate(logisticRegr, descriptors, target_feature['target_feature'], cv=5, scoring=['balanced_accuracy'])
+
+    # Print the results
+    print("Cross-validation results:", cv_results)
+    print("Mean Balanced Accuracy:", cv_results['test_balanced_accuracy'].mean())
+
+
+logisticRegression(final_data, data)
