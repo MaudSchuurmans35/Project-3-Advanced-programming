@@ -14,6 +14,8 @@ script_dir = os.path.dirname(os.path.abspath(__file__))  # Get the script's dire
 path = os.path.join(script_dir, 'train.csv')  # Construct the full path to train.csv
 data = pd.read_csv(path)
 
+def shuffeling_data(data):
+    
 def getting_descriptors(data,maner='short'):
     all_descriptors=[]
     all_fingerprints=[]
@@ -69,21 +71,13 @@ def rem_corr_features(data,threshold):
     new_data=data.drop(columns_to_drop, axis=1, inplace=False) #removing all highly correlated features
     return new_data
 
-
-#extracting information
-feature_data=getting_descriptors(data,'short') #extracting all descriptors
-#cleaning data
-clean_data=rem_empty_columns(feature_data) #removing columns where all entries are the same
-scaled_data=min_max_scaling_data(clean_data) #scaling the data using a min-max scaler
-cleaner_data= rem_corr_features(scaled_data,0.9) #removing all highly correlated features
-
 def pca(data, threshold_variance):
-    pca =PCA(n_components=threshold_variance)    #waarom bij 
-    principal_components = pca.fit_transform(data)
+    pca =PCA(n_components=threshold_variance)    #create the pca object
+    principal_components = pca.fit_transform(data)   #
     loadings = pca.components_
 
-    print("Explained Variance Ratio:", pca.explained_variance_ratio_)
-    print("Cumulative Explained Variance:", np.cumsum(pca.explained_variance_ratio_))
+    # print("Explained Variance Ratio:", pca.explained_variance_ratio_)
+    # print("Cumulative Explained Variance:", np.cumsum(pca.explained_variance_ratio_))
     # Plot 1: Cumulative Explained Variance Ratio
     plt.figure(1)
     plt.bar(list(range(1, len(np.cumsum(pca.explained_variance_ratio_)) + 1)), np.cumsum(pca.explained_variance_ratio_), color='skyblue', edgecolor='black')
@@ -104,8 +98,17 @@ def pca(data, threshold_variance):
 
     # Show both plots
     plt.show()
-    print(len(principal_components[0]))
+    print('the number of principle components is', len(principal_components[0]))
     data=pd.DataFrame(principal_components)
-    print(data.head)
+    #print(data.head)
+    return data
 
-pca(cleaner_data,0.9)
+
+#extracting information
+feature_data=getting_descriptors(data,'short') #extracting all descriptors
+#cleaning data
+clean_data=rem_empty_columns(feature_data) #removing columns where all entries are the same
+scaled_data=min_max_scaling_data(clean_data) #scaling the data using a min-max scaler
+cleaner_data= rem_corr_features(scaled_data,0.9) #removing all highly correlated features e.g features with correlation > 0.9
+pca_data=pca(cleaner_data,0.9) #turning original features into pc while maintaining 90% variance
+
