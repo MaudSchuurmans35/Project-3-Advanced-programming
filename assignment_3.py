@@ -76,8 +76,6 @@ def rem_corr_features(data,threshold):
     new_data=data.drop(columns_to_drop, axis=1, inplace=False) #removing all highly correlated features
     return new_data
 
-<<<<<<< HEAD
-=======
 
 #extracting information
 feature_data=getting_descriptors(data,'completely') #extracting all descriptors
@@ -86,7 +84,6 @@ clean_data=rem_empty_columns(feature_data) #removing columns where all entries a
 scaled_data=min_max_scaling_data(clean_data) #scaling the data using a min-max scaler
 cleaner_data= rem_corr_features(scaled_data,0.9) #removing all highly correlated features
 
->>>>>>> 1ad208fab7620dfe05a508b642ac03745ab7acbd
 def pca(data, threshold_variance):
     pca =PCA(n_components=threshold_variance)    #create the pca object
     principal_components = pca.fit_transform(data)   #
@@ -113,7 +110,6 @@ def pca(data, threshold_variance):
     plt.legend(['Explained Variance Ratio'], loc='best')
 
     # Show both plots
-<<<<<<< HEAD
     plt.show()
     print('the number of principle components is', len(principal_components[0]))
     data=pd.DataFrame(principal_components)
@@ -129,7 +125,6 @@ scaled_data=min_max_scaling_data(clean_data) #scaling the data using a min-max s
 cleaner_data= rem_corr_features(scaled_data,0.9) #removing all highly correlated features e.g features with correlation > 0.9
 pca_data=pca(cleaner_data,0.9) #turning original features into pc while maintaining 90% variance
 
-=======
     # plt.show()
     # print(len(principal_components[0]))
     data=pd.DataFrame(principal_components)
@@ -152,4 +147,3 @@ def logisticRegression(descriptors, target_feature):
 
 
 logisticRegression(final_data, data)
->>>>>>> 1ad208fab7620dfe05a508b642ac03745ab7acbd
