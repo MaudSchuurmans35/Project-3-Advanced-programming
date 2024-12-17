@@ -19,9 +19,10 @@ print(len(data))
 # train_data = 
 # test_data = 
 
-def shuffeling_data(data):
+#def shuffeling_data(data):
     
 def getting_descriptors(data,maner='short'):
+    print("entered getting_descriptors")
     all_descriptors=[]
     all_fingerprints=[]
     if maner== 'completely':
@@ -50,12 +51,14 @@ def getting_descriptors(data,maner='short'):
 
 
 def min_max_scaling_data(data_frame):
+    print("entered min_max")
     scaler=MinMaxScaler()
     normalized_data_frame = pd.DataFrame(scaler.fit_transform(data_frame), columns=data_frame.columns)
     return normalized_data_frame
 
 #if the value of a feature is the same everywhere we can throw this feature away
 def rem_empty_columns(data):
+    print("entered rem_empty_columns")
     for column in data.columns:
         if len(set(data[column])) == 1:  #turn the values of the column in a set, if the length is 1 all entries are the same
             #scaled_data=data.drop(column, axis=1) #drop the corresponding rows
@@ -85,6 +88,7 @@ scaled_data=min_max_scaling_data(clean_data) #scaling the data using a min-max s
 cleaner_data= rem_corr_features(scaled_data,0.9) #removing all highly correlated features
 
 def pca(data, threshold_variance):
+    print("entered pca")
     pca =PCA(n_components=threshold_variance)    #create the pca object
     principal_components = pca.fit_transform(data)   #
     loadings = pca.components_
@@ -117,13 +121,13 @@ def pca(data, threshold_variance):
     return data
 
 
-#extracting information
-feature_data=getting_descriptors(data,'short') #extracting all descriptors
-#cleaning data
-clean_data=rem_empty_columns(feature_data) #removing columns where all entries are the same
-scaled_data=min_max_scaling_data(clean_data) #scaling the data using a min-max scaler
-cleaner_data= rem_corr_features(scaled_data,0.9) #removing all highly correlated features e.g features with correlation > 0.9
-pca_data=pca(cleaner_data,0.9) #turning original features into pc while maintaining 90% variance
+    #extracting information
+    feature_data=getting_descriptors(data,'short') #extracting all descriptors
+    #cleaning data
+    clean_data=rem_empty_columns(feature_data) #removing columns where all entries are the same
+    scaled_data=min_max_scaling_data(clean_data) #scaling the data using a min-max scaler
+    cleaner_data= rem_corr_features(scaled_data,0.9) #removing all highly correlated features e.g features with correlation > 0.9
+    pca_data=pca(cleaner_data,0.9) #turning original features into pc while maintaining 90% variance
 
     # plt.show()
     # print(len(principal_components[0]))
@@ -137,6 +141,7 @@ final_data = pca(cleaner_data,None)
 
 
 def logisticRegression(descriptors, target_feature):
+    print("entere logisticRegression")
     logisticRegr = LogisticRegression(solver = 'lbfgs') # use this solver to make it faster
     # performing cross validation with different 
     cv_results = cross_validate(logisticRegr, descriptors, target_feature['target_feature'], cv=5, scoring=['balanced_accuracy'])
