@@ -11,21 +11,12 @@ from rdkit.Chem import MolFromSmiles
 import os
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_validate
-
-script_dir = os.path.dirname(os.path.abspath(__file__))  # Get the script's directory
-path = os.path.join(script_dir, 'train.csv')  # Construct the full path to train.csv
-data = pd.read_csv(path)
-print(len(data))
-# train_data = 
-# test_data = 
-
-#def shuffeling_data(data):
     
 def getting_descriptors(data,maner='short'):
     print("entered getting_descriptors")
     all_descriptors=[]
     all_fingerprints=[]
-    if maner== 'completely':
+    if maner == 'completely':
 
         for smile in data.iloc[:,0]:   #this is the correct one which loops over all the molecules but it takes 5 minutes to run
             molecule = MolFromSmiles(smile)
@@ -34,7 +25,7 @@ def getting_descriptors(data,maner='short'):
     else:
         
         for i in range(10):  #we us this one because the other one takes to long to run
-            smile=data.iloc[i,0]
+            smile = data.iloc[i,0]
             molecule = MolFromSmiles(smile)
             vals = Descriptors.CalcMolDescriptors(molecule) #vals is a dictionary
             all_descriptors.append(vals)
@@ -67,7 +58,7 @@ def rem_empty_columns(data):
     return new_data
 
 def rem_corr_features(data,threshold):
-    cor_matrix=data.corr()
+    cor_matrix = data.corr()
     columns_to_drop=set()
     for index, row in cor_matrix.iterrows(): #looping over all the rows in the correlation matrix
         if index in columns_to_drop: #checking if the row is already in the set columns_to_drop it is not needed to check all the correlations again
@@ -78,14 +69,6 @@ def rem_corr_features(data,threshold):
 
     new_data=data.drop(columns_to_drop, axis=1, inplace=False) #removing all highly correlated features
     return new_data
-
-
-#extracting information
-feature_data=getting_descriptors(data,'completely') #extracting all descriptors
-#cleaning data
-clean_data=rem_empty_columns(feature_data) #removing columns where all entries are the same
-scaled_data=min_max_scaling_data(clean_data) #scaling the data using a min-max scaler
-cleaner_data= rem_corr_features(scaled_data,0.9) #removing all highly correlated features
 
 def pca(data, threshold_variance):
     print("entered pca")
@@ -121,27 +104,8 @@ def pca(data, threshold_variance):
     return data
 
 
-    #extracting information
-    feature_data=getting_descriptors(data,'short') #extracting all descriptors
-    #cleaning data
-    clean_data=rem_empty_columns(feature_data) #removing columns where all entries are the same
-    scaled_data=min_max_scaling_data(clean_data) #scaling the data using a min-max scaler
-    cleaner_data= rem_corr_features(scaled_data,0.9) #removing all highly correlated features e.g features with correlation > 0.9
-    pca_data=pca(cleaner_data,0.9) #turning original features into pc while maintaining 90% variance
-
-    # plt.show()
-    # print(len(principal_components[0]))
-    data=pd.DataFrame(principal_components)
-    # print(data.head)
-    return data
-
-final_data = pca(cleaner_data,None)
-
-
-
-
 def logisticRegression(descriptors, target_feature):
-    print("entere logisticRegression")
+    print("entered logisticRegression")
     logisticRegr = LogisticRegression(solver = 'lbfgs') # use this solver to make it faster
     # performing cross validation with different 
     cv_results = cross_validate(logisticRegr, descriptors, target_feature['target_feature'], cv=5, scoring=['balanced_accuracy'])
@@ -150,5 +114,17 @@ def logisticRegression(descriptors, target_feature):
     print("Cross-validation results:", cv_results)
     print("Mean Balanced Accuracy:", cv_results['test_balanced_accuracy'].mean())
 
+script_dir = os.path.dirname(os.path.abspath(__file__))  # Get the script's directory
+path = os.path.join(script_dir, 'train.csv')  # Construct the full path to train.csv
+data = pd.read_csv(path)
+print(len(data))
 
+#extracting information
+feature_data = getting_descriptors(data,'completely') #extracting all descriptors
+#cleaning data
+clean_data = rem_empty_columns(feature_data) #removing columns where all entries are the same
+scaled_data = min_max_scaling_data(clean_data) #scaling the data using a min-max scaler
+cleaner_data = rem_corr_features(scaled_data,0.9) #removing all highly correlated features
+
+final_data = pca(cleaner_data,None)
 logisticRegression(final_data, data)
