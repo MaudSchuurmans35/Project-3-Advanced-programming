@@ -1,3 +1,5 @@
+#%%
+
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.decomposition import PCA
@@ -11,8 +13,20 @@ from rdkit.Chem import MolFromSmiles
 import os
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_validate
+
+def augment_data(data, size):
+    """Multiplies the dataset. The function returns the multiplied dataset"""
+    print("Entered augment data")
+    augmented_dataset = data
+    for i in range(size-1):
+        augmented_dataset = pd.concat([augmented_dataset, data], ignore_index = True)
+        print(len(augmented_dataset))
+    return augmented_dataset
+
+
     
-def getting_descriptors(data,maner='short'):
+def getting_descriptors(data, maner ='short'):
+    """The function gets the descriptors of the SMILES and returns them in a dataframe"""
     print("entered getting_descriptors")
     all_descriptors=[]
     all_fingerprints=[]
@@ -42,6 +56,7 @@ def getting_descriptors(data,maner='short'):
 
 
 def min_max_scaling_data(data_frame):
+    """The function normalizes the dataframe and returns the normalized dataframe"""
     print("entered min_max")
     scaler=MinMaxScaler()
     normalized_data_frame = pd.DataFrame(scaler.fit_transform(data_frame), columns=data_frame.columns)
@@ -49,6 +64,7 @@ def min_max_scaling_data(data_frame):
 
 #if the value of a feature is the same everywhere we can throw this feature away
 def rem_empty_columns(data):
+    """Function removes columns in a dataset that have the same value in every row. Returns the updated data"""
     print("entered rem_empty_columns")
     for column in data.columns:
         if len(set(data[column])) == 1:  #turn the values of the column in a set, if the length is 1 all entries are the same
@@ -57,7 +73,9 @@ def rem_empty_columns(data):
     #return scaled_data
     return new_data
 
-def rem_corr_features(data,threshold):
+def rem_corr_features(data, threshold):
+    """Function removes higly correlated features based on correlation threshold and 
+    returns the modified dataframe which excludes the highly correlated columns """
     cor_matrix = data.corr()
     columns_to_drop=set()
     for index, row in cor_matrix.iterrows(): #looping over all the rows in the correlation matrix
@@ -71,13 +89,18 @@ def rem_corr_features(data,threshold):
     return new_data
 
 def pca(data, threshold_variance):
+    """Function applies Principal Component Analysis to reduce the dimensionality
+    of a dataset while retaining as much variance as possible, based on given threshold
+    Functions plots the Cumulative Explained Variance Ratio
+    and Explained Variance Ratio for each principal component
+    The reduced-dimensionality dataset is converted back to a dataframe and returned"""
     print("entered pca")
     pca =PCA(n_components=threshold_variance)    #create the pca object
     principal_components = pca.fit_transform(data)   #
     loadings = pca.components_
 
-    # print("Explained Variance Ratio:", pca.explained_variance_ratio_)
-    # print("Cumulative Explained Variance:", np.cumsum(pca.explained_variance_ratio_))
+    print("Explained Variance Ratio:", pca.explained_variance_ratio_)
+    print("Cumulative Explained Variance:", np.cumsum(pca.explained_variance_ratio_))
     # Plot 1: Cumulative Explained Variance Ratio
     plt.figure(1)
     plt.bar(list(range(1, len(np.cumsum(pca.explained_variance_ratio_)) + 1)), np.cumsum(pca.explained_variance_ratio_), color='skyblue', edgecolor='black')
@@ -104,27 +127,38 @@ def pca(data, threshold_variance):
     return data
 
 
-def logisticRegression(descriptors, target_feature):
+def logisticRegression(descriptors, target_feature, k=5):
+    """the function performs logistic regression with cross-validation
+    to evaluate model's performance"""
     print("entered logisticRegression")
     logisticRegr = LogisticRegression(solver = 'lbfgs') # use this solver to make it faster
-    # performing cross validation with different 
-    cv_results = cross_validate(logisticRegr, descriptors, target_feature['target_feature'], cv=5, scoring=['balanced_accuracy'])
+    # performing cross validation  
+    cv_results = cross_validate(logisticRegr, descriptors, target_feature['target_feature'], cv=k, scoring=['balanced_accuracy'])
 
     # Print the results
     print("Cross-validation results:", cv_results)
     print("Mean Balanced Accuracy:", cv_results['test_balanced_accuracy'].mean())
 
+
+#run code
 script_dir = os.path.dirname(os.path.abspath(__file__))  # Get the script's directory
 path = os.path.join(script_dir, 'train.csv')  # Construct the full path to train.csv
 data = pd.read_csv(path)
 print(len(data))
 
+#augment data two times
+augmented_dataset = augment_data(data, 2)
+print(len(augmented_dataset), "done")
+
 #extracting information
-feature_data = getting_descriptors(data,'completely') #extracting all descriptors
+feature_data = getting_descriptors(augmented_dataset,'completely') #extracting all descriptors
 #cleaning data
 clean_data = rem_empty_columns(feature_data) #removing columns where all entries are the same
 scaled_data = min_max_scaling_data(clean_data) #scaling the data using a min-max scaler
 cleaner_data = rem_corr_features(scaled_data,0.9) #removing all highly correlated features
 
 final_data = pca(cleaner_data,None)
-logisticRegression(final_data, data)
+logisticRegression(final_data, data, 5)
+
+print("Finished")
+# %%
