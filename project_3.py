@@ -1,3 +1,4 @@
+#%% 
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.decomposition import PCA
@@ -13,12 +14,26 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_val_score, cross_validate
 
 def reading_data(filename):
+    print("entered reading data")
+    """function reads data from file and returns the data"""
     script_dir = os.path.dirname(os.path.abspath(__file__))  # Get the script's directory
     path = os.path.join(script_dir, filename)  # Construct the full path to train.csv
     data = pd.read_csv(path)
     return data
 
+def augment_data(data, size):
+    """Multiplies the dataset. The function returns the multiplied dataset"""
+    print("Entered augment data")
+    augmented_dataset = data
+    for i in range(size-1):
+        augmented_dataset = pd.concat([augmented_dataset, data], ignore_index = True)
+        print(len(augmented_dataset))
+    return augmented_dataset
+
+
 def get_labels(data, manner='short'):
+    print("entered get labels")
+    """function gets all labels from the data and returns the labels if manner is completely"""
     all_labels=data['target_feature'] #get all labels 
     if manner == 'completely': #if manner = completely return all labels
         labels= all_labels
@@ -27,6 +42,8 @@ def get_labels(data, manner='short'):
     return labels
 
 def getting_descriptors(data,manner='short',index_smile=0):
+    print("entered getting descriptors")
+    """The function gets the descriptors of the SMILES and returns them in a dataframe"""
     all_descriptors=[]
     all_fingerprints=[]
     if manner== 'completely':
@@ -54,12 +71,16 @@ def getting_descriptors(data,manner='short',index_smile=0):
     return all_descriptors_df
 
 def min_max_scaling_data(data_frame):
+    """The function normalizes the dataframe and returns the normalized dataframe"""
+    print("entered min max scaling")
     scaler=MinMaxScaler() #create scaler object
     normalized_data_frame = pd.DataFrame(scaler.fit_transform(data_frame), columns=data_frame.columns) #normalize the data using minmax scaler
     return normalized_data_frame
 
 #if the value of a feature is the same everywhere we can throw this feature away
 def rem_empty_columns(data):
+    """Function removes columns in a dataset that have the same value in every row. Returns the updated data"""
+    print("entered rem empty columns")
     for column in data.columns:
         if len(set(data[column])) == 1:  #turn the values of the column in a set, if the length is 1 all entries are the same
             #scaled_data=data.drop(column, axis=1) #drop the corresponding rows
@@ -68,6 +89,9 @@ def rem_empty_columns(data):
     return new_data
 
 def rem_corr_features(data,threshold):
+    """Function removes higly correlated features based on correlation threshold and 
+    returns the modified dataframe which excludes the highly correlated columns """
+    print("entered rem corr features")
     cor_matrix=data.corr()
     columns_to_drop=set()
     for index, row in cor_matrix.iterrows(): #looping over all the rows in the correlation matrix
@@ -81,6 +105,12 @@ def rem_corr_features(data,threshold):
     return new_data
 
 def pca(data, threshold_variance, plot=False):
+    """Function applies Principal Component Analysis to reduce the dimensionality
+    of a dataset while retaining as much variance as possible, based on given threshold
+    Functions plots the Cumulative Explained Variance Ratio
+    and Explained Variance Ratio for each principal component
+    The reduced-dimensionality dataset is converted back to a dataframe and returned"""
+    print("entered pca")
     pca =PCA(n_components=threshold_variance)    #create pca object
     principal_components = pca.fit_transform(data) #perform pca
     if plot == True: #plot the pca plots if needed
@@ -106,6 +136,8 @@ def pca(data, threshold_variance, plot=False):
     return data, pca
 
 def processing_train_data(feature_data, correlation_threshold,manner='short',plot=False):
+    """function preprocesses the data by removing empty columns, scaling the data and removing higly correlated features"""
+    print("entered processing train data")
     clean_data=rem_empty_columns(feature_data) #removing columns where all entries are the same
     scaled_data=min_max_scaling_data(clean_data) #scaling the data using a min-max scaler
     cleaner_data= rem_corr_features(scaled_data,correlation_threshold) #removing all highly correlated features
@@ -113,13 +145,17 @@ def processing_train_data(feature_data, correlation_threshold,manner='short',plo
 
 
 def get_val_score(descriptors, target_feature):
+    """function returns validation score using k-fold cross validation """
+    print("entered get val score")
     logistic_model = LogisticRegression(solver = 'lbfgs') # use this solver to make it faster
     scores = cross_val_score(logistic_model,descriptors,target_feature,cv=5,scoring='balanced_accuracy') #here the validation scores are calculated using 5 fold cross validation
     val_score=scores.mean() #take the mean off the 5 folds
     return val_score
 
 
-def getting_cor_var(feature_data, labels,manner='short'): #this function tries to find the optimal values of the threshold for correlation and variance
+def getting_cor_var(feature_data, labels,manner='short'): 
+    """function tries to find the optimal values of the threshold for correlation and variance and returns them"""
+    print("entered getting cor var")
     correlation = list(np.arange(0.8, 0.95, 0.025)) #try values for correlation from 0.8 to 0.95 with steps off 0.025
     variance=list(np.arange(0.8,0.95,0.025)) #try values for variance explained from 0.8 to 0.95 with steps off 0.025
     best_val_score=0
@@ -138,18 +174,24 @@ def getting_cor_var(feature_data, labels,manner='short'): #this function tries t
     print('for correlation_max', best_corr, 'and variance explained', best_var)
     return best_corr, best_var
 
-def train_model(descriptors, target_feature): #train the logistic regression model
+def train_model(descriptors, target_feature): 
+    """function trains the logistic regression model and returns this model"""
+    print("entered train model")
     logistic_model = LogisticRegression(solver = 'lbfgs') # use this solver to make it faster
     logistic_model.fit(descriptors, target_feature)
     return logistic_model
 
-def removing_features(train_data,test_data): #remove the features in the test data that are not used for pca in the training data
+def removing_features(train_data,test_data): 
+    """function removes the features in the test data that are not used for pca in the training data and returns test dataframe"""
+    print("entered removing features")
     columns_to_keep=list(train_data.columns) #make a list of all the columns that are used for pca
     test_df=test_data[columns_to_keep] #create a dataframe with all used features
     return test_df
            
 
-def predict_from_smiles(test_data,train_data, logistic_model, pca_model,manner='short'):
+def predict_from_smiles(test_data,train_data, logistic_model, pca_model, manner='short'):
+    """function predicts from SMILES using the trained logistic regression model and returns the predictions in dataframe"""
+    print("entered predict from smiles")
     descriptors = getting_descriptors(test_data, manner, index_smile=1) # Extract descriptors for the SMILES data
     unique_ids=test_data['Unique_ID'].head(descriptors.shape[0]) # Extract descriptors for the SMILES data
     scaled_data = min_max_scaling_data(descriptors) # Clean and preprocess descriptors
@@ -161,8 +203,9 @@ def predict_from_smiles(test_data,train_data, logistic_model, pca_model,manner='
 
 manner='completely'
 train_data=reading_data('train.csv') #get the data out of the excel file
-labels=get_labels(train_data,manner)
-feature_data=getting_descriptors(train_data,manner) #getting the differend descriptors
+augmented_training_data = augment_data(train_data, 2)
+labels=get_labels(augmented_training_data,manner)
+feature_data=getting_descriptors(augmented_training_data,manner) #getting the differend descriptors
 print('now the training has started')
 best_corr, best_var = getting_cor_var(feature_data,labels)
 clean_data = processing_train_data(feature_data,best_corr,manner,False) #processing the data
@@ -173,8 +216,10 @@ test_data=reading_data('test.csv') #get the test_data out of the excel file
 print('starting with predicting outputs')
 output_predictions = predict_from_smiles(test_data, clean_data, logistic_model1,pca_model,manner) #predict the labels for the test data
 print(output_predictions)
+#%%
+#Save predictions to CSV
+script_dir = os.path.dirname(os.path.abspath(__file__)) 
+output_csv_path = os.path.join(script_dir, 'predicted_outcomes.csv')
+output_predictions.to_csv(output_csv_path, index=False)
 
-# Save predictions to CSV
-# script_dir = os.path.dirname(os.path.abspath(__file__)) 
-# output_csv_path = os.path.join(script_dir, 'predicted_outcomes.csv')
-# output_predictions.to_csv(output_csv_path, index=False)
+# %%
