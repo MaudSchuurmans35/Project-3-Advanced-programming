@@ -52,6 +52,8 @@ def getting_descriptors(data,manner='short',index_smile=0):
             molecule = MolFromSmiles(smile) #create the object molecule based on a smile
             vals = Descriptors.CalcMolDescriptors(molecule) #get the values of all the descripters from this molecule
             all_descriptors.append(vals) #create a list off all the dictionarys containing the descriptor information
+            morgan_fp = AllChem.GetMorganFingerprintAsBitVect(molecule, radius=2, nBits=1024) #2048 
+            all_fingerprints.append(np.array(morgan_fp))
     else:
         
         for i in range(200):  #we us this one because the other one takes to long to run
@@ -64,11 +66,18 @@ def getting_descriptors(data,manner='short',index_smile=0):
             maar geeft wel heel veel hoofdpijn en maakt het ook veel ingewikkelder voor pca om goede dingen 
             te vinden want hierdoor komt er nBits aan features bij"""
 
-            # morgan_fp = AllChem.GetMorganFingerprintAsBitVect(molecule, radius=2, nBits=1024) #2048 
-            # all_fingerprint.append(morgan_fp.ToBitString())
+            morgan_fp = AllChem.GetMorganFingerprintAsBitVect(molecule, radius=2, nBits=1024) #2048 
+            all_fingerprints.append(np.array(morgan_fp))
+    # turning the fingerprints into a dataframe where every column is a different bit
+    df_fingerprints=pd.DataFrame([all_fingerprints[0]], columns = [f'Bit_{i}' for i in range(len(all_fingerprints[0]))])
+    for fingerprint in all_fingerprints:
+        df_fingerprints.loc[len(df_fingerprints)] = fingerprint
+    fingerprint_df = df_fingerprints.drop(0, axis=0).reset_index(drop=True)
 
     all_descriptors_df = pd.DataFrame(all_descriptors) #turn the list of dictionarys into a dataframe
-    return all_descriptors_df
+
+    complete_df=pd.concat([all_descriptors_df, fingerprint_df], axis=1) #creating 1 dataframe out off the descriptors and the fingerprints
+    return complete_df
 
 def min_max_scaling_data(data_frame):
     """The function normalizes the dataframe and returns the normalized dataframe"""
@@ -169,12 +178,12 @@ def getting_cor_var(feature_data, labels,manner='short'):
             if val_score > best_val_score: #if the new validation score is better then the old save the value together with the corresponding correlation and variance value
                 best_val_score = val_score
                 best_corr=round(i,3)
-                best_var=round(j,2)
+                best_var=round(j,3)
     print('the best balanced acc =',best_val_score)
     print('for correlation_max', best_corr, 'and variance explained', best_var)
     return best_corr, best_var
 
-def train_model(descriptors, target_feature): 
+def train_logistic_model(descriptors, target_feature): 
     """function trains the logistic regression model and returns this model"""
     print("entered train model")
     logistic_model = LogisticRegression(solver = 'lbfgs') # use this solver to make it faster
@@ -187,18 +196,24 @@ def removing_features(train_data,test_data):
     columns_to_keep=list(train_data.columns) #make a list of all the columns that are used for pca
     test_df=test_data[columns_to_keep] #create a dataframe with all used features
     return test_df
-           
 
-def predict_from_smiles(test_data,train_data, logistic_model, pca_model, manner='short'):
-    """function predicts from SMILES using the trained logistic regression model and returns the predictions in dataframe"""
-    print("entered predict from smiles")
+def preparing_test_data(test_data,train_data,pca_model,manner='short'):
     descriptors = getting_descriptors(test_data, manner, index_smile=1) # Extract descriptors for the SMILES data
-    unique_ids=test_data['Unique_ID'].head(descriptors.shape[0]) # Extract descriptors for the SMILES data
-    scaled_data = min_max_scaling_data(descriptors) # Clean and preprocess descriptors
+    unique_ids=test_data['Unique_ID'].head(descriptors.shape[0]) # Extract unique ids for the test data
+    scaled_data = min_max_scaling_data(descriptors) # scale the test data
     data=removing_features(train_data,scaled_data) #remove features not needed for pca transform 
-    pca_data=pca_model.transform(data) #transforming the original descriptors to principle
-    predictions = logistic_model.predict(pca_data) # Predict using the trained logistic regression model
-    output_df = pd.DataFrame({'Unique_ID': unique_ids,'target_feature': predictions}) #turning the predictions into a dataframe
+    pca_data=pca_model.transform(data) #transforming the original descriptors to principle components
+    pca_columns = [i+1 for i in range(pca_data.shape[1])] # creating a list with the pca column names
+    test_data_pca = pd.DataFrame(pca_data, columns=pca_columns) #turning the pca_data which is a np array into a dataframe
+    test_data_pca.insert(0, 'Unique_ID', unique_ids.values) #adding the unique ids as the first column
+    return test_data_pca
+
+def predict_from_smiles(test_data,trained_model):
+    unique_ids=test_data['Unique_ID'] #saving the unique ids
+    predict_data=test_data.drop(columns=['Unique_ID'])
+    #print(test_data.head)
+    predictions = trained_model.predict(predict_data) #predicting the labels
+    output_df = pd.DataFrame({'Unique_ID': unique_ids,'target_feature': predictions}) #turning the predictions into a dataframe with corresponding ids
     return output_df
 
 manner='completely'
@@ -208,14 +223,20 @@ labels=get_labels(augmented_training_data,manner)
 feature_data=getting_descriptors(augmented_training_data,manner) #getting the differend descriptors
 print('now the training has started')
 best_corr, best_var = getting_cor_var(feature_data,labels)
+# best_corr = 0.825
+# best_var = 0.875
 clean_data = processing_train_data(feature_data,best_corr,manner,False) #processing the data
 X_data,pca_model =pca(clean_data, best_var, plot=False)
-logistic_model1 = train_model(X_data, labels) #training the model
+# val_score=get_val_score(X_data, labels)
+# print(val_score)
+logistic_model1 = train_logistic_model(X_data, labels) #training the model
 
 test_data=reading_data('test.csv') #get the test_data out of the excel file
+print('starting with processing test_data')
+processed_test_data=preparing_test_data(test_data, clean_data,pca_model,manner)
 print('starting with predicting outputs')
-output_predictions = predict_from_smiles(test_data, clean_data, logistic_model1,pca_model,manner) #predict the labels for the test data
-print(output_predictions)
+output_predictions=predict_from_smiles(processed_test_data,logistic_model1)
+print(output_predictions.head)
 #%%
 #Save predictions to CSV
 script_dir = os.path.dirname(os.path.abspath(__file__)) 
