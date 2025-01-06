@@ -1,3 +1,3 @@
 # NeuroPharmAI
-![Alt text](images/Logo.jpg)
+!(images/Logo.jpg)
 ## 
