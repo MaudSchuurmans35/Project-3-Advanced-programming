@@ -14,7 +14,25 @@ The code needs two input files.
 
 First is a csv file with the train data. This file should contain two columns, one with the SMILES and one with the corresponding "target_feature". 
 
+```
+SMILES_canonical,"target_feature"
+CCOC(=O)CC1ON(C)C(=O)N1c1ccc([N+](=O)[O-])cc1,"0"
+Cc1nc(C)c(-c2nnc(SCCCN3CCC4(CCc5cc(Cl)ccc54)C3)n2C)s1,"1"
+COC(=O)c1c(NC(=O)c2nc(SCc3cccc(C)c3)ncc2Cl)sc2c1CCCC2,"0"
+Cc1c(Cl)cccc1-n1nnc(-c2nc(-c3ccc4c(c3)OCO4)no2)c1C,"0"
+etc.
+```
+
 Second is a csv file with the test data. This file should contain two columns with one the Unique_ID and one with the SMILES. 
+
+```
+Unique_ID,"SMILES_canonical"
+1,"COc1cccc(C(=O)N2CCCC(CCC(=O)NCc3ccc(F)c(F)c3)C2)c1"
+2,"OCc1ccc2c(CN3CCN(c4ccc(Cl)cc4)CC3)cnn2c1"
+3,"CCN1CCc2c(sc(NC(=O)COc3ccccc3)c2C(=O)OC)C1"
+etc.
+```
+
 
 
 ## Requirements
@@ -50,12 +68,13 @@ predict_from_smiles(test_data, trained_model): Make predictions using the traine
 ## Output 
 
 The code outputs a csv file. In file contains the following format:
-
+```
 Unique_ID, target_feature
 1, 0
 2, 1
 3, 0 
 etc. 
+```
 
 Where the 'Unique_ID' column corresponds to the number provided in the test dataset. The 'target_feature' corresponds to 0 or to 1 if a molecule is predicted to not bind or to bind to DRD3, respectively. 
 
