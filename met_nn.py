@@ -307,84 +307,90 @@ def predict_test_data(test_data,trained_model):
 
 
 
+def run_code(manner = 'short', fingerprintcount = 4096, augment_data_x_times = 5, write_to_file = False, train_nn_model = False):
+    ###extracting and preparing information
+    train_data=reading_data('train.csv') #get the data out of the excel file
+    augmented_training_data = augment_data(train_data, augment_data_x_times)
+    labels=get_labels(augmented_training_data,manner)
+    descriptors_start_time=time.time()
+    feature_data=getting_descriptors(augmented_training_data,manner,0,fingerprintcount) #getting the differend descriptors ongeveer 2 minuten om standaard dataset de features eruit te halen en iets van 4 voor de fingerprints
+    descriptors_end_time=time.time()
 
-###defining some external parameters
-manner='completely'
-fingerprintcount=4096
+    ###creating different ml models
+    logistic_model = LogisticRegression(solver = 'lbfgs')
+    svm_model=SVC(kernel='rbf', C=2.5, gamma='auto', random_state=42)
 
-###extracting and preparing information
-train_data=reading_data('train.csv') #get the data out of the excel file
-augmented_training_data = augment_data(train_data, 5)
-labels=get_labels(augmented_training_data,manner)
-descriptors_start_time=time.time()
-feature_data=getting_descriptors(augmented_training_data,manner,0,fingerprintcount) #getting the differend descriptors ongeveer 2 minuten om standaard dataset de features eruit te halen en iets van 4 voor de fingerprints
-descriptors_end_time=time.time()
+    descriptors_time=descriptors_end_time-descriptors_start_time
+    ###start with cleaning and preparing the data
+    print('now the training has started')
 
-###creating different ml models
-logistic_model = LogisticRegression(solver = 'lbfgs')
-svm_model=SVC(kernel='rbf', C=2.5, gamma='auto', random_state=42)
+    if manner == 'completely':
+        best_corr_logistic, best_var_logistic = getting_cor_var(feature_data,labels,logistic_model,manner)
+        best_corr_svm, best_var_svm = getting_cor_var(feature_data,labels,svm_model,manner)
+    else: 
+        best_corr = 0.825
+        best_var = 0.875
+    
+    cleaning_start_time=time.time()
+    clean_data = processing_train_data(feature_data,best_corr,manner,False) #processing the data
+    #clean_data_svm = processing_train_data(feature_data,best_corr_svm,manner,False)
+    # cleaner_data=rem_empty_columns(feature_data) #removing columns where all entries are the same
+    # scaled_data=min_max_scaling_data(cleaner_data) #scaling the data using a min-max scaler
+    # clean_data= rem_corr_features(scaled_data,best_corr) #removing all highly correlated features
 
-descriptors_time=descriptors_end_time-descriptors_start_time
-###start with cleaning and preparing the data
-print('now the training has started')
-# best_corr_logistic, best_var_logistic = getting_cor_var(feature_data,labels,logistic_model,manner)
-# best_corr_svm, best_var_svm = getting_cor_var(feature_data,labels,svm_model,manner)
-best_corr = 0.825
-best_var = 0.875
-cleaning_start_time=time.time()
-clean_data = processing_train_data(feature_data,best_corr,manner,False) #processing the data
-#clean_data_svm = processing_train_data(feature_data,best_corr_svm,manner,False)
-# cleaner_data=rem_empty_columns(feature_data) #removing columns where all entries are the same
-# scaled_data=min_max_scaling_data(cleaner_data) #scaling the data using a min-max scaler
-# clean_data= rem_corr_features(scaled_data,best_corr) #removing all highly correlated features
-cleaning_end_time=time.time()
-pca_start_time=time.time()
-X_data,pca_model =pca(clean_data, best_var, plot=False)
-#X_data_svm,pca_model_svm =pca(clean_data_svm, best_var_svm, plot=False)
-pca_end_time=time.time()
+    cleaning_end_time=time.time()
+    pca_start_time=time.time()
 
-#nn_model=create_nn_model(X_data)
+    X_data,pca_model =pca(clean_data, best_var, plot=False)
+    #X_data_svm,pca_model_svm =pca(clean_data_svm, best_var_svm, plot=False)
+    pca_end_time=time.time()
 
-###getting the validation scores for the differend models
-val_score_logistic=get_val_score(X_data, labels,logistic_model)
-val_score_svm=get_val_score(X_data, labels,svm_model)
-#model_history=training_nn_model(X_data,labels,nn_model,n_epochs=500,n_batchsize=64)
-#plot_balanced_accuracy(model_history)
-print(val_score_logistic,val_score_svm)
+    if train_nn_model == True:
+        nn_model=create_nn_model(X_data)
+        model_history=training_nn_model(X_data,labels,nn_model,n_epochs=500,n_batchsize=64)
+        plot_balanced_accuracy(model_history)
 
-###training the model to predict
-logistic_model1 = train_logistic_model(X_data, labels) #training the model
-svm_model1=train_svm_model(X_data, labels)
+    ###getting the validation scores for the different models
+    val_score_logistic=get_val_score(X_data, labels,logistic_model)
+    val_score_svm=get_val_score(X_data, labels,svm_model)
+    
+    print(val_score_logistic,val_score_svm)
+
+    ###training the model to predict
+    logistic_model1 = train_logistic_model(X_data, labels) #training the model
+    svm_model1=train_svm_model(X_data, labels)
 
 
-###preparing the test data
-test_data=reading_data('test.csv') #get the test_data out of the excel file
-processed_test_data=preparing_test_data(test_data, clean_data, pca_model, manner, fingerprintcount)
-#processed_test_data_svm=preparing_test_data(test_data, clean_data_svm, pca_model_svm, manner, fingerprintcount)
+    ###preparing the test data
+    test_data=reading_data('test.csv') #get the test_data out of the excel file
+    processed_test_data=preparing_test_data(test_data, clean_data, pca_model, manner, fingerprintcount)
+    #processed_test_data_svm=preparing_test_data(test_data, clean_data_svm, pca_model_svm, manner, fingerprintcount)
 
-###predicting the test set
-output_predictions_logistic = predict_test_data(processed_test_data, logistic_model1)
-output_predictions_svm = predict_test_data(processed_test_data, svm_model1)
-# print(output_predictions.head)
-#%%
+    ###predicting the test set
+    output_predictions_logistic = predict_test_data(processed_test_data, logistic_model1)
+    output_predictions_svm = predict_test_data(processed_test_data, svm_model1)
+    # print(output_predictions.head)
 
-###Save predictions to CSV
-script_dir = os.path.dirname(os.path.abspath(__file__)) 
-output_csv_path = os.path.join(script_dir, 'predicted_outcomes_logistic_aug5_fp4.csv')
-output_predictions_logistic.to_csv(output_csv_path, index=False)
+    ###Save predictions to CSV
+    if write_to_file == True:
+        print("save predictions to CSV")
+        script_dir = os.path.dirname(os.path.abspath(__file__)) 
+        output_csv_path = os.path.join(script_dir, 'predicted_outcomes_logistic_aug5_fp4.csv')
+        output_predictions_logistic.to_csv(output_csv_path, index=False)
 
-script_dir = os.path.dirname(os.path.abspath(__file__)) 
-output_csv_path = os.path.join(script_dir, 'predicted_outcomes_svm_aug5_fp4.csv')
-output_predictions_svm.to_csv(output_csv_path, index=False)
+        script_dir = os.path.dirname(os.path.abspath(__file__)) 
+        output_csv_path = os.path.join(script_dir, 'predicted_outcomes_svm_aug5_fp4.csv')
+        output_predictions_svm.to_csv(output_csv_path, index=False)
 
-print('this is the validation score for logistic and svm', val_score_logistic, val_score_svm)
-# print('this is the best cor and var for logistic', best_corr_logistic, best_var_logistic)
-# print('this is the best cor and var for svm', best_corr_svm,best_corr_logistic)
-descriptors_time=descriptors_end_time-descriptors_start_time
-cleaning_time=cleaning_end_time-cleaning_start_time
-pca_time=pca_end_time-pca_start_time
+    print('this is the validation score for logistic and svm', val_score_logistic, val_score_svm)
+    if manner == 'completely':
+        print('this is the best cor and var for logistic', best_corr_logistic, best_var_logistic)
+        print('this is the best cor and var for svm', best_corr_svm,best_corr_logistic)
+    descriptors_time=descriptors_end_time-descriptors_start_time
+    cleaning_time=cleaning_end_time-cleaning_start_time
+    pca_time=pca_end_time-pca_start_time
 
-###when running this code with fingerprint bit count 1024 and 5 times augmentation you get a validation score for logistic regression of 0.9984844408427878
-print('this is the time it takes to get the descriptors', descriptors_time)
-print('this is the time it takes to clean the data', cleaning_time)
-print('this is the time it takes to perform pca', pca_time)
+    ###when running this code with fingerprint bit count 1024 and 5 times augmentation you get a validation score for logistic regression of 0.9984844408427878
+    print('this is the time it takes to get the descriptors', descriptors_time)
+    print('this is the time it takes to clean the data', cleaning_time)
+    print('this is the time it takes to perform pca', pca_time)
