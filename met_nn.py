@@ -52,7 +52,9 @@ def get_labels(data, manner='short'):
 
 def getting_descriptors(data,manner='short',index_smile=0,fingerprintcount=1024):
     print("entered getting descriptors")
-    """The function gets the descriptors of the SMILES and returns them in a dataframe"""
+    """The function gets all descriptors of the SMILES.
+    The function also appends the Morgan Fingerprints asa Bit Vector in a list. The fingerprints
+    are put into a dataframe and the complete dataframe with all descriptors and the fingerprints is returned"""
     descriptors_start_time=time.time()
     all_descriptors=[]
     all_fingerprints=[]
@@ -99,45 +101,9 @@ def rem_empty_columns(data):
     #return scaled_data
     return new_data
 
-#def rem_corr_features(data,threshold):
-    """Function removes higly correlated features based on correlation threshold and 
-    returns the modified dataframe which excludes the highly correlated columns """
-    print("entered rem corr features")
-    cor_matrix=data.corr()
-    columns_to_drop=set()
-    for index, row in cor_matrix.iterrows(): #looping over all the rows in the correlation matrix
-        if index in columns_to_drop: #checking if the row is already in the set columns_to_drop it is not needed to check all the correlations again
-            continue
-        for col in cor_matrix.columns: #loop over all the columns
-            if cor_matrix.at[index,col] > threshold and index != col: #select the corresponding values and check if they are above the threshold and the 2 features are not the same
-                columns_to_drop.add(col) #add the corresponding column to the set which contains all features which have high variance with another feature
-
-    new_data=data.drop(columns_to_drop, axis=1, inplace=False) #removing all highly correlated features
-    return new_data
-#def rem_corr_features(data, threshold):
-    """
-    Removes highly correlated features based on a correlation threshold.
-    Returns the modified dataframe excluding the highly correlated columns.
-    """
-    print("entered rem_corr_features")
-    
-    # Compute the correlation matrix
-    cor_matrix = data.corr().abs()  # Use absolute values for correlations
-    
-    # Mask the upper triangle of the matrix
-    upper_triangle = np.triu(np.ones(cor_matrix.shape), k=1).astype(bool)
-    
-    # Identify columns to drop based on the threshold
-    columns_to_drop = [
-        column for column in cor_matrix.columns
-        if any(cor_matrix.loc[column, idx] > threshold for idx in cor_matrix.columns[upper_triangle[:, cor_matrix.columns.get_loc(column)]])
-    ]
-    
-    # Drop the identified columns
-    new_data = data.drop(columns=columns_to_drop, axis=1)
-    return new_data
-
 def rem_corr_features(data, threshold):
+    """The function removes higly correlated features above a certain threshold.
+    Returns updated dataframe without the highly correlated features"""
     cor_matrix = data.corr().abs()  # Absolute correlation values
     upper = cor_matrix.where(np.triu(np.ones(cor_matrix.shape), k=1).astype(bool))
     to_drop = [column for column in upper.columns if any(upper[column] > threshold)]
@@ -147,9 +113,9 @@ def rem_corr_features(data, threshold):
 
 def pca(data, threshold_variance, plot=False):
     """Function applies Principal Component Analysis to reduce the dimensionality
-    of a dataset while retaining as much variance as possible, based on given threshold
+    of a dataset while retaining as much variance as possible, based on given threshold.
     Functions plots the Cumulative Explained Variance Ratio
-    and Explained Variance Ratio for each principal component
+    and Explained Variance Ratio for each principal component if plot is True
     The reduced-dimensionality dataset is converted back to a dataframe and returned"""
     print("entered pca")
     pca =PCA(n_components=threshold_variance)    #create pca object
@@ -222,12 +188,16 @@ def train_logistic_model(descriptors, target_feature):
     return logistic_model
 
 def train_svm_model(descriptors, target_feature):
+    """function trains support vector machine.with a rbf kernel and specified hyperparameters. The trained model is returned. """
     svm_model=SVC(kernel='rbf', C=2.5, gamma='auto', random_state=42) #gamma is a hyperparameter, scale automaticly finds a good gamma based on feature space and variance rbf kernel is a radial basis function
     svm_model.fit(descriptors, target_feature)
     return svm_model
 
 
 def balanced_accuracy(y_true, y_pred):
+    """calculates the balanced accuracy for binary classification
+    based on sensitivity and specifity of the predictions.
+    The balanced accuracy is returned"""
     # Threshold predictions at 0.5 (for binary classification)
     y_pred_classes = K.cast(K.greater(y_pred, 0.5), dtype='float32')
     
@@ -248,6 +218,7 @@ def balanced_accuracy(y_true, y_pred):
     return balanced_acc
 
 def create_nn_model(X_train,learningrate=0.001):
+    """function creates neural network model with layers and dropout, the model is compiled and returned. """
     model = Sequential()
 
     model.add(Dense(2*X_train.shape[1], input_dim=X_train.shape[1], activation='relu'))
@@ -271,11 +242,14 @@ def create_nn_model(X_train,learningrate=0.001):
     return model
 
 def training_nn_model(X_train, labels, model,n_epochs=500,n_batchsize=64):
+    """function trains the Neural network. The dataset is splitted in training and validation dataset.
+    the history of the model is returned. """
     X_train_split, X_val, y_train_split, y_val = train_test_split(X_train, labels, test_size=0.2, random_state=42)
     history = model.fit(X_train_split,y_train_split,validation_data=(X_val, y_val),epochs=n_epochs,batch_size=n_batchsize,verbose=1)
     return history
 
 def plot_balanced_accuracy(history):
+    """The validation loss and training loss is plotted for each epoch"""
     # Get the training and validation balanced accuracy from the history object
     train_balanced_acc = history.history.get('balanced_accuracy', [])
     val_balanced_acc = history.history.get('val_balanced_accuracy', [])
@@ -308,6 +282,9 @@ def removing_features(train_data,test_data):
     return test_df
 
 def preparing_test_data(test_data,train_data,pca_model,manner='short',fingerprintcount=1024):
+    """function prepares the test data by getting the descriptors, scaling the data and removing the features that 
+    are not needed for pca.  The original descriptors are transformed to the principle components
+    and the pca-transformed test data is returned with unique IDs as the first column"""
     descriptors = getting_descriptors(test_data, manner, index_smile=1, fingerprintcount=fingerprintcount) # Extract descriptors for the SMILES data
     unique_ids=test_data['Unique_ID'].head(descriptors.shape[0]) # Extract unique ids for the test data
     scaled_data = min_max_scaling_data(descriptors) # scale the test data
@@ -319,12 +296,15 @@ def preparing_test_data(test_data,train_data,pca_model,manner='short',fingerprin
     return test_data_pca
 
 def predict_test_data(test_data,trained_model):
+    """The function predicts the labels for the dataset based on the trained model. 
+    The output is put into a dataframe with the unique IDs and this is returned"""
     unique_ids=test_data['Unique_ID'] #saving the unique ids
     predict_data=test_data.drop(columns=['Unique_ID'])
     #print(test_data.head)
     predictions = trained_model.predict(predict_data) #predicting the labels
     output_df = pd.DataFrame({'Unique_ID': unique_ids,'target_feature': predictions}) #turning the predictions into a dataframe with corresponding ids
     return output_df
+
 
 
 
@@ -387,6 +367,7 @@ output_predictions_logistic = predict_test_data(processed_test_data, logistic_mo
 output_predictions_svm = predict_test_data(processed_test_data, svm_model1)
 # print(output_predictions.head)
 #%%
+
 ###Save predictions to CSV
 script_dir = os.path.dirname(os.path.abspath(__file__)) 
 output_csv_path = os.path.join(script_dir, 'predicted_outcomes_logistic_aug5_fp4.csv')
@@ -402,6 +383,7 @@ print('this is the validation score for logistic and svm', val_score_logistic, v
 descriptors_time=descriptors_end_time-descriptors_start_time
 cleaning_time=cleaning_end_time-cleaning_start_time
 pca_time=pca_end_time-pca_start_time
+
 ###when running this code with fingerprint bit count 1024 and 5 times augmentation you get a validation score for logistic regression of 0.9984844408427878
 print('this is the time it takes to get the descriptors', descriptors_time)
 print('this is the time it takes to clean the data', cleaning_time)
