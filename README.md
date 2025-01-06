@@ -44,6 +44,13 @@ etc.
 - Rdkit
 - OS
 
+## Usage
+The final code is the "main assignment.py" file in this resporatory. 
+
+To use the code you can call .... 
+
+
+
 ## Key Functions
 All the different functions, with a small explanation, present in our code are stated below. 
 
