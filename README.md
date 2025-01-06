@@ -73,8 +73,8 @@ getting_cor_var(feature_data, labels, manner): Optimize correlation and variance
 train_logistic_model(descriptors, target_feature): Train a logistic regression model.  
 removing_features(train_data, test_data): Ensure test data matches training feature space.  
 preparing_test_data(test_data, train_data, pca_model, manner): Preprocess test data.  
-predict_from_smiles(test_data, trained_model): Make predictions using the trained model.  
-
+predict_from_smiles(test_data, trained_model): Make predictions using the trained model. 
+run_code(manner, fingerprintcount, augment_data_x_times, write_to_file, train_nn_model): Running this function, the code is runned and calls all the other functions
 
 ## Output 
 
