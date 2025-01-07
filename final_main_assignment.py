@@ -308,6 +308,9 @@ def predict_test_data(test_data,trained_model):
 
 
 def run_code(manner = 'short', fingerprintcount = 4096, augment_data_x_times = 5, write_to_file = False, train_nn_model = False):
+    """Functions runs the code. It extracts and prepares the data, creates different ML models and cleans the data.
+    It also gets the validation scores for the different models. Trains the models to predict the labels. The test data is prepared and predictions can be saved 
+    to CSV file after the predictions are made. """
     ###extracting and preparing information
     train_data=reading_data('train.csv') #get the data out of the excel file
     augmented_training_data = augment_data(train_data, augment_data_x_times)
@@ -359,7 +362,6 @@ def run_code(manner = 'short', fingerprintcount = 4096, augment_data_x_times = 5
     ###training the model to predict
     logistic_model1 = train_logistic_model(X_data, labels) #training the model
     svm_model1=train_svm_model(X_data, labels)
-
 
     ###preparing the test data
     test_data=reading_data('test.csv') #get the test_data out of the excel file
