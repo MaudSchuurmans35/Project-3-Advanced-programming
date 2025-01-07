@@ -45,11 +45,11 @@ etc.
 - OS
 
 ## Usage
-The final code is the "final main assignment.py" file in this resporatory. 
+The final code is the "final main assignment.py" file in this repository. 
 To use the code you open the file "run file.py". By opening and running this file, the code is runned. This file contains the following code:
 ```
 from final_main_assignment import run_code
-run_code(manner = 'short', fingerprintcount = 4096, augment_data_x_times = 5, write_to_file = False, train_nn_model = False)
+run_code(manner = 'completely', fingerprintcount = 4096, augment_data_x_times = 5, write_to_file = False, train_nn_model = False)
 ```
 The manner, fingerprintcount and augment data x times can be changed. Additionally, the predictions can also be written to a file and if desirable, a Neural Network can also be trained. 
 
